@@ -59,28 +59,29 @@ class Github_Gist: # Learn class for first time, PR if bad or want to improve
             "Content-Type": "application/json"
         }
         resp = post(self.api, headers=headers, data=dumps(data))
-        if any(x == resp.status_code for x in [200, 201]):
-            resp = resp.json()
-            if not resp.get('message'):
-                result = {
-                    "url": resp.get('html_url'), 
-                    "raw": list(resp.get('files').values())[0].get('raw_url').replace(' ', '%20')
-                }
-                return result
-            else:
-                raise Exception(f"ERROR : {resp.get('message')}")
+        if resp.status_code not in [200, 201]:
+            raise Exception("ERROR : Failed To Create Github Gist")
+        resp = resp.json()
+        if not resp.get('message'):
+            return {
+                "url": resp.get('html_url'),
+                "raw": list(resp.get('files').values())[0]
+                .get('raw_url')
+                .replace(' ', '%20'),
+            }
+
         else:
-            raise Exception(f"ERROR : Failed To Create Github Gist")
+            raise Exception(f"ERROR : {resp.get('message')}")
     
     def delete(self, ids: str) -> str:
         headers = {
             "Authorization": f"token {self.token}"
         }
-        resp = delete(self.api + '/' + ids, headers=headers)
+        resp = delete(f'{self.api}/{ids}', headers=headers)
         if resp.ok:
-            return "Success Delete Gist With ID {}".format(ids)
+            return f"Success Delete Gist With ID {ids}"
         else:
-            raise Exception(f"ERROR : Failed To Delete Github Gist")
+            raise Exception("ERROR : Failed To Delete Github Gist")
 
 # Custom Filters, to support bot username
 def command(command: Union[str, list], prefix: Union[str, list] = ["/", "."], is_sudo: bool = False):
@@ -88,10 +89,10 @@ def command(command: Union[str, list], prefix: Union[str, list] = ["/", "."], is
     if isinstance(command, list):
         cmds = []
         for i in command:
-            cmds.extend([i, i + '@' + username])
+            cmds.extend([i, f'{i}@{username}'])
         command = filters.command(cmds, prefix)
     else:
-        command = filters.command([command, command + '@' + username], prefix)
+        command = filters.command([command, f'{command}@{username}'], prefix)
     if is_sudo:
         command = command & sudo
     return command & ~filters.edited
@@ -102,7 +103,7 @@ def humanbytes(size: int):
     """Convert Bytes To Bytes So That Human Can Read It"""
     if not isinstance(command, int):
         try:
-            size = int(size)
+            size = size
         except ValueError:
             size = None
     if not size:
@@ -115,7 +116,7 @@ def humanbytes(size: int):
         size /= power
         raised_to_pow += 1
     try:
-        real_size = str(round(size, 2)) + " " + dict_power_n[raised_to_pow] + "B"
+        real_size = f"{str(round(size, 2))} {dict_power_n[raised_to_pow]}B"
     except KeyError:
         real_size = "Can't Define Real Size !"
     return real_size
@@ -137,7 +138,10 @@ async def create(_, message):
     if not reply and len(message.command) < 2:
         return await message.reply_text(f"**Reply To A Message With /{target} or with command**", quote=True)
 
-    msg = await message.reply_text(message, f"`Pasting to Github Gist...`", quote=True)
+    msg = await message.reply_text(
+        message, "`Pasting to Github Gist...`", quote=True
+    )
+
     data = ''
     limit = 1024 * 1024
     if reply and reply.document:
@@ -176,7 +180,7 @@ async def create(_, message):
     except Exception as e:
         await msg.edit(f"`{e}`")
         return
-    
+
     if not url:
         return await msg.edit("Text Too Short Or File Problems")
     button = []
