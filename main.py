@@ -26,6 +26,11 @@ except Exception as e:
     print(e)
     exit(1)
 
+OWNER_ID = int(environ.get('OWNER_ID', 845077810))
+sudo = filters.user()
+sudo.add(OWNER_ID)
+
+
 class Github_Gist: # Learn class for first time, PR if bad or want to improve
     
     def __init__(self, title: str = "", description: str = "", is_secret: bool = False): # All Params For Custom, Maybe Later
@@ -65,16 +70,20 @@ class Github_Gist: # Learn class for first time, PR if bad or want to improve
             raise ValueError("ERROR : Failed To Delete Github Gist")
 
 # Custom Filters, to support bot username
-def command(command: Union[str, list], prefix: Union[str, list] = ["/", "."]):
-    username = app.get_me().username
+def command(command: Union[str, list], prefix: Union[str, list] = None, is_sudo: bool = False):
+    if not prefix:
+        prefix = ["/", "."]
+    username = app.me.username
     if isinstance(command, list):
         cmds = []
         for i in command:
-            cmds.extend([i, i + '@' + username])
+            cmds.extend([i, f'{i}@{username}'])
         command = filters.command(cmds, prefix)
     else:
-        command = filters.command([command, command + '@' + username], prefix)
-    return command & ~filters.edited
+        command = filters.command([command, f'{command}@{username}'], prefix)
+    if is_sudo:
+        command = command & sudo
+    return command
 
 
 # Size Checker for Limit
@@ -162,7 +171,7 @@ async def create(_, message):
         button.append([InlineKeyboardButton("Open Link", url=url), InlineKeyboardButton("Raw Link", url=raw)])
 
     else:
-        button.append([InlineKeyboardButton("Raw Link", url=raw)])
+        button.append([InlineKeyboardButton("Open Link", url=url)])
     button.append([InlineKeyboardButton("Share Link", url=f"https://telegram.me/share/url?url={url}")])
 
     pasted = f"**Here's your Github Gist URL successfully pasted.\n\nPaste by {uname}**"
@@ -170,7 +179,7 @@ async def create(_, message):
     await msg.edit(pasted, reply_markup=InlineKeyboardMarkup(button))
 
 
-@app.on_message(command('delete'))
+@app.on_message(command('delete', is_sudo=True))
 async def delete(_, message):
     try:
         ids = message.command[1]
