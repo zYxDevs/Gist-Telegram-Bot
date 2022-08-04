@@ -127,7 +127,7 @@ async def create(_, message):
     if not reply and len(message.command) < 2:
         return await message.reply_text(f"**Reply To A Message With /{target} or with command**", quote=True)
 
-    msg = await message.reply_text(message, "`Pasting to Github Gist...`", quote=True)
+    msg = await message.reply_text("`Pasting to Github Gist...`", quote=True)
     data = ''
     limit = 1024 * 1024
     if reply and reply.document:
