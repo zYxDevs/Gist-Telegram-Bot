@@ -158,7 +158,7 @@ async def create(_, message):
     else:
         uname = message.sender_chat.title
     try:
-        resp = Github_Gist.create(data)
+        resp = Github_Gist().create(data)
         url = resp.get("url")
         raw = resp.get("raw")
     except Exception as e:
@@ -187,7 +187,7 @@ async def delete(_, message):
         return await message.reply_text(f"**/{message.command[0]} GIST_ID**", quote=True)
     
     try:
-        result = Github_Gist.delete(ids)
+        result = Github_Gist().delete(ids)
     except Exception as e:
         result = str(e)
         
